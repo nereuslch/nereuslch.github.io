@@ -68,7 +68,7 @@
 
 
 
-  <meta name="keywords" content="Hexo, NexT">
+  <meta name="keywords" content="中间件,">
 
 
 
@@ -79,13 +79,18 @@
 
 
 
-<meta property="og:type" content="website">
-<meta property="og:title" content="Nereus&#39;s Notes">
-<meta property="og:url" content="http://yoursite.com/index.html">
+<meta name="description" content="ETCD Watch 机制(一)[TOC] ETCD V3 Watch服务实现 注册grpc watch服务；pb.RegisterWatchServer(grpcServer, NewWatchServer(s)) ;  watchserver实现了Watch()函数 1234567891011121314151617181920212223242526272829303132333435363">
+<meta name="keywords" content="中间件">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ETCD Watch 机制(一)">
+<meta property="og:url" content="http://yoursite.com/2019/01/04/ETCD-Watch-机制-一/index.html">
 <meta property="og:site_name" content="Nereus&#39;s Notes">
+<meta property="og:description" content="ETCD Watch 机制(一)[TOC] ETCD V3 Watch服务实现 注册grpc watch服务；pb.RegisterWatchServer(grpcServer, NewWatchServer(s)) ;  watchserver实现了Watch()函数 1234567891011121314151617181920212223242526272829303132333435363">
 <meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-01-05T17:12:27.063Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Nereus&#39;s Notes">
+<meta name="twitter:title" content="ETCD Watch 机制(一)">
+<meta name="twitter:description" content="ETCD Watch 机制(一)[TOC] ETCD V3 Watch服务实现 注册grpc watch服务；pb.RegisterWatchServer(grpcServer, NewWatchServer(s)) ;  watchserver实现了Watch()函数 1234567891011121314151617181920212223242526272829303132333435363">
 
 
 
@@ -115,13 +120,13 @@
 
 
 
-  <link rel="canonical" href="http://yoursite.com/">
+  <link rel="canonical" href="http://yoursite.com/2019/01/04/ETCD-Watch-机制-一/">
 
 
 
 
 
-  <title>Nereus's Notes</title>
+  <title>ETCD Watch 机制(一) | Nereus's Notes</title>
   
 
 
@@ -140,8 +145,7 @@
     
   
 
-  <div class="container sidebar-position-left 
-  page-home">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope="" itemtype="http://schema.org/WPHeader">
@@ -234,9 +238,9 @@
         <div class="content-wrap">
           <div id="content" class="content">
             
-  <section id="posts" class="posts-expand">
+
+  <div id="posts" class="posts-expand">
     
-      
 
   
 
@@ -266,9 +270,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2019/01/04/ETCD-Watch-机制-一/" itemprop="url">ETCD Watch 机制(一)</a></h1>
+          <h1 class="post-title" itemprop="name headline">ETCD Watch 机制(一)</h1>
         
 
         <div class="post-meta">
@@ -328,9 +330,7 @@
       
 
       
-        
-          
-            <h1 id="ETCD-Watch-机制-一"><a href="#ETCD-Watch-机制-一" class="headerlink" title="ETCD Watch 机制(一)"></a>ETCD Watch 机制(一)</h1><p>[TOC]</p>
+        <h1 id="ETCD-Watch-机制-一"><a href="#ETCD-Watch-机制-一" class="headerlink" title="ETCD Watch 机制(一)"></a>ETCD Watch 机制(一)</h1><p>[TOC]</p>
 <h2 id="ETCD-V3-Watch服务实现"><a href="#ETCD-V3-Watch服务实现" class="headerlink" title="ETCD V3 Watch服务实现"></a>ETCD V3 Watch服务实现</h2><ol>
 <li><p>注册grpc watch服务；<code>pb.RegisterWatchServer(grpcServer, NewWatchServer(s))</code> ;  watchserver实现了Watch()函数</p>
 <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(ws *watchServer)</span> <span class="title">Watch</span><span class="params">(stream pb.Watch_WatchServer)</span> <span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 新建名为watchStream的中间层，</span></span><br><span class="line">	<span class="comment">// 用于管理watcher与后端存储的交互以及watcher的生命周期</span></span><br><span class="line">	sws := serverWatchStream&#123;</span><br><span class="line">		lg:              ws.lg,</span><br><span class="line">		clusterID:       ws.clusterID,</span><br><span class="line">		memberID:        ws.memberID,</span><br><span class="line">		maxRequestBytes: ws.maxRequestBytes,</span><br><span class="line"></span><br><span class="line">		sg:        ws.sg,</span><br><span class="line">		watchable: ws.watchable,</span><br><span class="line">		ag:        ws.ag,</span><br><span class="line"></span><br><span class="line">		gRPCStream:  stream, </span><br><span class="line">		watchStream: ws.watchable.NewWatchStream(),</span><br><span class="line">		ctrlStream:  <span class="built_in">make</span>(<span class="keyword">chan</span> *pb.WatchResponse, ctrlStreamBufLen),</span><br><span class="line"></span><br><span class="line">		progress: <span class="built_in">make</span>(<span class="keyword">map</span>[mvcc.WatchID]<span class="keyword">bool</span>),</span><br><span class="line">		prevKV:   <span class="built_in">make</span>(<span class="keyword">map</span>[mvcc.WatchID]<span class="keyword">bool</span>),</span><br><span class="line">		fragment: <span class="built_in">make</span>(<span class="keyword">map</span>[mvcc.WatchID]<span class="keyword">bool</span>),</span><br><span class="line">		closec:   <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	sws.wg.Add(<span class="number">1</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// 用于监听存储的kv变化后转发给客户端</span></span><br><span class="line">		sws.sendLoop()</span><br><span class="line">		sws.wg.Done()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	errc := <span class="built_in">make</span>(<span class="keyword">chan</span> error, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// 监听客户端关于watcher的create以及cancel请求</span></span><br><span class="line">		<span class="keyword">if</span> rerr := sws.recvLoop(); rerr != <span class="literal">nil</span> &#123;</span><br><span class="line">			...</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> err = &lt;-errc:</span><br><span class="line">		<span class="built_in">close</span>(sws.ctrlStream)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">case</span> &lt;-stream.Context().Done():</span><br><span class="line">		err = stream.Context().Err()</span><br><span class="line">		<span class="keyword">if</span> err == context.Canceled &#123;</span><br><span class="line">			err = rpctypes.ErrGRPCNoLeader</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	sws.<span class="built_in">close</span>()</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
@@ -348,8 +348,6 @@
 <p>##Etcd V3 存储 —— WatchableStore<br><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> watchableStore <span class="keyword">struct</span> &#123;</span><br><span class="line">	*store</span><br><span class="line"></span><br><span class="line">	<span class="comment">// mu protects watcher groups and batches. It should never be locked</span></span><br><span class="line">	<span class="comment">// before locking store.mu to avoid deadlock.</span></span><br><span class="line">	mu sync.RWMutex</span><br><span class="line"></span><br><span class="line">	<span class="comment">// victims are watcher batches that were blocked on the watch channel</span></span><br><span class="line">	victims []watcherBatch</span><br><span class="line">	victimc <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// contains all unsynced watchers that needs to sync with events that have happened</span></span><br><span class="line">	unsynced watcherGroup</span><br><span class="line"></span><br><span class="line">	<span class="comment">// contains all synced watchers that are in sync with the progress of the store.</span></span><br><span class="line">	<span class="comment">// The key of the map is the key that the watcher watches on.</span></span><br><span class="line">	synced watcherGroup</span><br><span class="line"></span><br><span class="line">	stopc <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line">	wg    sync.WaitGroup</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
 <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newWatchableStore</span><span class="params">(lg *zap.Logger, b backend.Backend, le lease.Lessor, ig ConsistentIndexGetter)</span> *<span class="title">watchableStore</span></span> &#123;</span><br><span class="line">	s := &amp;watchableStore&#123;</span><br><span class="line">		store:    NewStore(lg, b, le, ig),</span><br><span class="line">		victimc:  <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">1</span>),</span><br><span class="line">		unsynced: newWatcherGroup(),</span><br><span class="line">		synced:   newWatcherGroup(),</span><br><span class="line">		stopc:    <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;),</span><br><span class="line">	&#125;</span><br><span class="line">	s.store.ReadView = &amp;readView&#123;s&#125;</span><br><span class="line">	s.store.WriteView = &amp;writeView&#123;s&#125;</span><br><span class="line">	<span class="keyword">if</span> s.le != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// use this store as the deleter so revokes trigger watch events</span></span><br><span class="line">		s.le.SetRangeDeleter(<span class="function"><span class="keyword">func</span><span class="params">()</span> <span class="title">lease</span>.<span class="title">TxnDelete</span></span> &#123; <span class="keyword">return</span> s.Write() &#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	s.wg.Add(<span class="number">2</span>)</span><br><span class="line">	<span class="keyword">go</span> s.syncWatchersLoop()</span><br><span class="line">	<span class="keyword">go</span> s.syncVictimsLoop()</span><br><span class="line">	<span class="keyword">return</span> s</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *watchableStore)</span> <span class="title">syncWatchers</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	s.mu.Lock()</span><br><span class="line">	<span class="keyword">defer</span> s.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> s.unsynced.size() == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	s.store.revMu.RLock()</span><br><span class="line">	<span class="keyword">defer</span> s.store.revMu.RUnlock()</span><br><span class="line"></span><br><span class="line">	curRev := s.store.currentRev</span><br><span class="line">	compactionRev := s.store.compactMainRev</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 先找出一批watcher中revision最小的值，然后根据改值来遍历boltDB,将多版本的key变更都找到</span></span><br><span class="line">	wg, minRev := s.unsynced.choose(maxWatchersPerSync, curRev, compactionRev)</span><br><span class="line">	minBytes, maxBytes := newRevBytes(), newRevBytes()</span><br><span class="line">	revToBytes(revision&#123;main: minRev&#125;, minBytes)</span><br><span class="line">	revToBytes(revision&#123;main: curRev + <span class="number">1</span>&#125;, maxBytes)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// etcd v3 底层存储引擎为boltdb 存储结构为Key_Value key为为revision,</span></span><br><span class="line">    <span class="comment">// revision 其组成为事务ID+事务内的事件ID</span></span><br><span class="line">    tx := s.store.b.ReadTx()</span><br><span class="line">	tx.Lock()</span><br><span class="line">	revs, vs := tx.UnsafeRange(keyBucketName, minBytes, maxBytes, <span class="number">0</span>)</span><br><span class="line">	<span class="keyword">var</span> evs []mvccpb.Event</span><br><span class="line">	<span class="keyword">if</span> s.store != <span class="literal">nil</span> &amp;&amp; s.store.lg != <span class="literal">nil</span> &#123;</span><br><span class="line">		evs = kvsToEvents(s.store.lg, wg, revs, vs)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		evs = kvsToEvents(<span class="literal">nil</span>, wg, revs, vs)</span><br><span class="line">	&#125;</span><br><span class="line">	tx.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> victims watcherBatch</span><br><span class="line">    <span class="comment">// 根据event的key找到对应的watcher</span></span><br><span class="line">	wb := newWatcherBatch(wg, evs)</span><br><span class="line">	<span class="keyword">for</span> w := <span class="keyword">range</span> wg.watchers &#123;</span><br><span class="line">		w.minRev = curRev + <span class="number">1</span></span><br><span class="line"></span><br><span class="line">		eb, ok := wb[w]</span><br><span class="line">		<span class="keyword">if</span> !ok &#123;</span><br><span class="line">			s.synced.add(w)</span><br><span class="line">			s.unsynced.<span class="built_in">delete</span>(w)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> eb.moreRev != <span class="number">0</span> &#123;</span><br><span class="line">			w.minRev = eb.moreRev</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 将watchResponse丢到watchsteam的ch让watchserver来消费</span></span><br><span class="line">		<span class="keyword">if</span> w.send(WatchResponse&#123;WatchID: w.id, Events: eb.evs, Revision: curRev&#125;) &#123;</span><br><span class="line">			pendingEventsGauge.Add(<span class="keyword">float64</span>(<span class="built_in">len</span>(eb.evs)))</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> victims == <span class="literal">nil</span> &#123;</span><br><span class="line">				victims = <span class="built_in">make</span>(watcherBatch)</span><br><span class="line">			&#125;</span><br><span class="line">			w.victim = <span class="literal">true</span></span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> w.victim &#123;</span><br><span class="line">			victims[w] = eb</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> eb.moreRev != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="comment">// stay unsynced; more to read</span></span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			s.synced.add(w)</span><br><span class="line">		&#125;</span><br><span class="line">		s.unsynced.<span class="built_in">delete</span>(w)</span><br><span class="line">	&#125;</span><br><span class="line">	s.addVictim(victims)</span><br><span class="line"></span><br><span class="line">	vsz := <span class="number">0</span></span><br><span class="line">	<span class="keyword">for</span> _, v := <span class="keyword">range</span> s.victims &#123;</span><br><span class="line">		vsz += <span class="built_in">len</span>(v)</span><br><span class="line">	&#125;</span><br><span class="line">	slowWatcherGauge.Set(<span class="keyword">float64</span>(s.unsynced.size() + vsz))</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> s.unsynced.size()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-          
-        
       
     </div>
     
@@ -364,143 +362,36 @@
 
     <footer class="post-footer">
       
-
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </div>
-  
-  
-  
-  </article>
-
-
-    
-      
-
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal" itemscope="" itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/12/30/Hello-Word/">
-
-    <span hidden itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="Nereus">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/zuoluo.jpeg">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope="" itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="Nereus's Notes">
-    </span>
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-                
-                <a class="post-title-link" href="/2018/12/30/Hello-Word/" itemprop="url">Hello Word</a></h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              
-                <span class="post-meta-item-text">发表于</span>
-              
-              <time title="创建于" itemprop="dateCreated datePublished" datetime="2018-12-30T20:02:19+08:00">
-                2018-12-30
-              </time>
-            
-
-            
-
-            
-          </span>
-
+        <div class="post-tags">
           
-
+            <a href="/tags/中间件/" rel="tag"># 中间件</a>
           
-            
-              <span class="post-comments-count">
-                <span class="post-meta-divider">|</span>
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-comment-o"></i>
-                </span>
-                <a href="/2018/12/30/Hello-Word/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2018/12/30/Hello-Word/" itemprop="commentCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-          
-
-          
-
-          
-
-          
-
         </div>
-      </header>
-    
+      
 
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
+      
       
       
 
       
-        
-          
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
             
-          
-        
-      
-    </div>
-    
-    
-    
+              <a href="/2018/12/30/Hello-Word/" rel="next" title="Hello Word">
+                <i class="fa fa-chevron-left"></i> Hello Word
+              </a>
+            
+          </div>
 
-    
+          <span class="post-nav-divider"></span>
 
-    
-
-    
-
-    <footer class="post-footer">
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
       
 
       
-
-      
-
-      
-      
-        <div class="post-eof"></div>
       
     </footer>
   </div>
@@ -510,10 +401,11 @@
   </article>
 
 
-    
-  </section>
 
-  
+    <div class="post-spread">
+      
+    </div>
+  </div>
 
 
           </div>
@@ -521,6 +413,16 @@
 
 
           
+
+  
+    <div class="comments" id="comments">
+      <div class="ds-thread" data-thread-key="2019/01/04/ETCD-Watch-机制-一/" data-title="ETCD Watch 机制(一)" data-url="http://yoursite.com/2019/01/04/ETCD-Watch-机制-一/">
+      </div>
+    </div>
+
+  
+
+
 
         </div>
         
@@ -541,8 +443,17 @@
       
 
       
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
 
-      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+      <section class="site-overview-wrap sidebar-panel">
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
             
@@ -605,6 +516,22 @@
         </div>
       </section>
 
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#ETCD-Watch-机制-一"><span class="nav-number">1.</span> <span class="nav-text">ETCD Watch 机制(一)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ETCD-V3-Watch服务实现"><span class="nav-number">1.1.</span> <span class="nav-text">ETCD V3 Watch服务实现</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
       
 
       
@@ -739,6 +666,10 @@
 
 
   
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
 
   
 
